@@ -24,7 +24,7 @@
 (ns postal.smtp
   (:use [postal.message :only [make-jmessage]]
         [postal.support :only [make-props]])
-  (:import [javax.mail Transport Session]))
+  (:import [jakarta.mail Transport Session]))
 
 (defn ^:dynamic smtp-send* [^Session session ^String proto
                             {:keys [host port user pass]} msgs]
@@ -32,7 +32,7 @@
   (with-open [transport (.getTransport session proto)]
     (.connect transport host port user pass)
     (let [jmsgs (map #(make-jmessage % session) msgs)]
-      (doseq [^javax.mail.Message jmsg jmsgs]
+      (doseq [^jakarta.mail.Message jmsg jmsgs]
         (.sendMessage transport jmsg (.getAllRecipients jmsg)))
       {:code 0 :error :SUCCESS :message "messages sent"})))
 

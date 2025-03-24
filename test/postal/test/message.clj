@@ -27,8 +27,8 @@
         [clojure.java.io :as io]
         [postal.date :only [make-date]])
   (:import [java.util Properties UUID]
-           [javax.mail Session Message$RecipientType]
-           [javax.mail.internet MimeMessage InternetAddress
+           [jakarta.mail Session Message$RecipientType]
+           [jakarta.mail.internet MimeMessage InternetAddress
             AddressException]
            [java.util.zip ZipOutputStream ZipEntry]))
 

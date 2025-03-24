@@ -28,17 +28,17 @@
         [postal.support :only [do-when make-props message-id user-agent]])
   (:import [java.util UUID]
            [java.net MalformedURLException]
-           [javax.activation DataHandler]
-           [javax.mail Message Message$RecipientType PasswordAuthentication Session]
-           [javax.mail.internet InternetAddress MimeMessage]
-           [javax.mail.util ByteArrayDataSource]))
+           [jakarta.activation DataHandler]
+           [jakarta.mail Message Message$RecipientType PasswordAuthentication Session]
+           [jakarta.mail.internet InternetAddress MimeMessage]
+           [jakarta.mail.util ByteArrayDataSource]))
 
 (def default-charset "utf-8")
 
 (declare make-jmessage)
 
 (defn recipients [msg]
-  (let [^javax.mail.Message jmsg (make-jmessage msg)]
+  (let [^jakarta.mail.Message jmsg (make-jmessage msg)]
     (map str (.getAllRecipients jmsg))))
 
 (defn sender [msg]
@@ -70,14 +70,14 @@
 
 (defn ^String message->str [msg]
   (with-open [out (java.io.ByteArrayOutputStream.)]
-    (let [^javax.mail.Message jmsg (if (instance? MimeMessage msg)
+    (let [^jakarta.mail.Message jmsg (if (instance? MimeMessage msg)
                                      msg (make-jmessage msg))]
       (.writeTo jmsg out)
       (str out))))
 
 (defn add-recipient! [jmsg rtype addr charset]
   (if-let [addr (make-address addr charset)]
-    (doto ^javax.mail.Message jmsg
+    (doto ^jakarta.mail.Message jmsg
       (.addRecipient rtype addr))
     jmsg))
 
@@ -100,25 +100,25 @@
   (eval-part [part] (eval-bodypart part))
   clojure.lang.IPersistentCollection
   (eval-part [part]
-    (doto (javax.mail.internet.MimeBodyPart.)
+    (doto (jakarta.mail.internet.MimeBodyPart.)
       (.setContent (eval-multipart part)))))
 
 (defn- encode-filename [filename]
-  (. javax.mail.internet.MimeUtility encodeText filename "UTF-8" nil))
+  (. jakarta.mail.internet.MimeUtility encodeText filename "UTF-8" nil))
 
 (defprotocol MimeBodyPart
-  (^javax.mail.internet.MimeBodyPart mime-body-part [content part]))
+  (^jakarta.mail.internet.MimeBodyPart mime-body-part [content part]))
 
 (extend-protocol MimeBodyPart
   (class (make-array Byte/TYPE 0))
   (mime-body-part [content {:keys [content-type]}]
     (let [src (ByteArrayDataSource. ^bytes content ^String content-type)]
-      (doto (javax.mail.internet.MimeBodyPart.)
+      (doto (jakarta.mail.internet.MimeBodyPart.)
         (.setDataHandler (DataHandler. src)))))
   Object
   (mime-body-part [content _]
     (let [url (make-url content)]
-      (doto (javax.mail.internet.MimeBodyPart.)
+      (doto (jakarta.mail.internet.MimeBodyPart.)
         (.setDataHandler (DataHandler. url))
         (.setFileName (-> (re-find #"[^/]+$" (.getPath url))
                           encode-filename))))))
@@ -136,7 +136,7 @@
               (.setFileName (encode-filename (:file-name part))))
       (cond-> (:description part)
               (.setDescription (:description part))))
-    (doto (javax.mail.internet.MimeBodyPart.)
+    (doto (jakarta.mail.internet.MimeBodyPart.)
       (.setContent (:content part) (:type part))
       (cond-> (:file-name part)
         (.setFileName (encode-filename (:file-name part))))
@@ -151,20 +151,20 @@
         [^String multiPartType, parts] (if (keyword? (first parts))
                                          [(name (first parts)) (rest parts)]
                                          ["mixed" parts])
-        mp (javax.mail.internet.MimeMultipart. multiPartType)]
+        mp (jakarta.mail.internet.MimeMultipart. multiPartType)]
     (doseq [part parts]
       (.addBodyPart mp (eval-part part)))
     mp))
 
-(defn add-multipart! [^javax.mail.Message jmsg parts]
+(defn add-multipart! [^jakarta.mail.Message jmsg parts]
   (.setContent jmsg (eval-multipart parts)))
 
-(defn add-extra! [^javax.mail.Message jmsg msgrest]
+(defn add-extra! [^jakarta.mail.Message jmsg msgrest]
   (doseq [[n v] msgrest]
     (.addHeader jmsg (if (keyword? n) (name n) n) v))
   jmsg)
 
-(defn add-body! [^javax.mail.Message jmsg body charset]
+(defn add-body! [^jakarta.mail.Message jmsg body charset]
   (if (string? body)
     (if (instance? MimeMessage jmsg)
       (doto ^MimeMessage jmsg (.setText body charset))
@@ -172,7 +172,7 @@
     (doto jmsg (add-multipart! body))))
 
 (defn make-auth [user pass]
-  (proxy [javax.mail.Authenticator] []
+  (proxy [jakarta.mail.Authenticator] []
     (getPasswordAuthentication [] (PasswordAuthentication. user pass))))
 
 (defn make-jmessage
